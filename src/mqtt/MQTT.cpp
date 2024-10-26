@@ -745,27 +745,28 @@ bool MQTT::isPrivateIpAddress(const char address[])
         return false;
     }
 
-    // Check the easy ones first.
-    if (strcmp(address, "127.0.0.1") == 0 || strncmp(address, "10.", 3) == 0 || strncmp(address, "192.168", 7) == 0 ||
-        strncmp(address, "169.254", 7) == 0) {
+    // Is it the localhost IP Address (127.0.0.1)
+    if (strcmp(address, "127.0.0.1") == 0) {
         return true;
     }
 
-    // See if it's definitely not a 172 address.
-    if (strncmp(address, "172", 3) != 0) {
-        return false;
+    // Is it an RFC1918 IP Address (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16)
+    if (strncmp(address, "10.", 3) == 0 || strncmp(address, "192.168", 7) == 0) {
+        return true;
+    } else if (strncmp(address, "172", 3) == 0 && address[6] != '.') {
+        // Copy the second octet into a secondary buffer we can null-terminate and parse.
+        char octet2[3];
+        strncpy(octet2, address + 4, 2);
+        octet2[2] = 0;
+
+        int octet2Num = atoi(octet2);
+        return octet2Num >= 16 && octet2Num <= 31;
     }
 
-    // We know it's a 172 address, now see if the second octet is 2 digits.
-    if (address[6] != '.') {
+    // Is it an RFC3927 IP Address (169.254.0.0/16)
+    if (strncmp(address, "169.254", 7) == 0) {
+        return true;
+    } else {
         return false;
     }
-
-    // Copy the second octet into a secondary buffer we can null-terminate and parse.
-    char octet2[3];
-    strncpy(octet2, address + 4, 2);
-    octet2[2] = 0;
-
-    int octet2Num = atoi(octet2);
-    return octet2Num >= 16 && octet2Num <= 31;
 }
